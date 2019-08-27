@@ -1,26 +1,24 @@
 const express = require('express');
 
-const db = require('../data/db-config.js');
+const Users = require('./user-model.js');
 
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  db('users')
-  .then(users => {
-    res.json(users);
-  })
-  .catch (err => {
-    res.status(500).json({ message: 'Failed to get users' });
-  });
+  Users.find()
+    .then(users => {
+      res.json(users);
+    })
+    .catch (err => {
+      res.status(500).json({ message: 'Failed to get users' });
+    });
 });
 
 router.get('/:id', (req, res) => {
   const { id } = req.params;
 
-  db('users').where({ id })
-  .then(users => {
-    const user = users[0];
-
+  Users.findById(id)
+  .then(user => {
     if (user) {
       res.json(user);
     } else {
@@ -35,9 +33,9 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   const userData = req.body;
 
-  db('users').insert(userData)
-  .then(ids => {
-    res.status(201).json({ created: ids[0] });
+  Users.add(userData)
+  .then(newUser => {
+    res.status(201).json(newUser);
   })
   .catch(err => {
     res.status(500).json({ message: 'Failed to create new user' });
@@ -48,12 +46,12 @@ router.put('/:id', (req, res) => {
   const { id } = req.params;
   const changes = req.body;
 
-  db('users').where({ id }).update(changes)
-  .then(count => {
-    if (count) {
-      res.json({ update: count });
+  Users.update(id, changes)
+  .then(updated => {
+    if(updated) {
+      res.status(201).json({ message: 'User has been updated' });
     } else {
-      res.status(404).json({ message: 'Could not find user with given id' });
+      res.status(500).json({ message: 'User ID not found' });
     }
   })
   .catch(err => {
@@ -64,7 +62,7 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
 
-  db('users').where({ id }).del()
+  Users.remove(id)
   .then(count => {
     if (count) {
       res.json({ removed: count });
@@ -75,6 +73,19 @@ router.delete('/:id', (req, res) => {
   .catch(err => {
     res.status(500).json({ message: 'Failed to delete user' });
   });
+});
+
+router.get('/:id/posts', (req, res) => {
+  const { id } = req.params;
+
+  // SELECT * FROM posts WHERE user_id = id;
+  Users.findPosts(id)
+    .then(posts => {
+      res.status(200).json(posts);
+    })
+    .catch(err => {
+      res.status(500).json({ message: 'Failed to get posts' });
+    })
 });
 
 module.exports = router;
